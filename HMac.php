@@ -4,6 +4,10 @@
 HMac 
 Two parties want to communicate, but they want to ensure the contents of their communication have not been tampered with.
 
+Hmac is a cryptographic technique that proves: 
+a) Who sent the message (authentication);
+b) The message wasn't changed (integrity).
+
 HMac does not provide confidentiality; encryption (e.g. TLS/AES) is required for privacy.
 
 HMac uses:
@@ -65,6 +69,35 @@ To fully validate a message you must bind HMac to:
     -Timestamp --> Prevents replay;
     -Nonce --> Prevents duplication; 
     -Sender ID --> Prevents cross-app reuse.
+
+Common real-world use cases: 
+
+    a) API Authentication. 
+       Your app --> sends request to payment API --> Payment API verifies the request came from you. 
+
+    b) Webhook Verification
+       Stripe sends you a webhook --> "checkout session completed" --> your server verifies Stripe actually sent it
+    
+    c) Signed Cookies
+       The user logs in --> the server creates a session cookie with HMac --> the user returns --> the server checks the cookie 
+       hasn't been changed.
+    4) File integrity
+       The user downloads a software --> it comes with an HMac tag --> before installing it, verify the file wasn't corrupted or modified
+
+Table of when to use Hmac vs alternatives
+
+Need                               Use                            Why
+_____________________________________________________________________________________________________
+Verify message integrity between | HMac                         | Both parties share the same secret |
+trusted parties                  |                              | key                                |
+_________________________________|______________________________|____________________________________|
+Verify sender identity publicly  |Digital signatures (RSA/ECDSA)|Only sender has the private key     |
+_________________________________|______________________________|____________________________________|
+Authentication + Authorization + |JWT                           | It contains claims, it can be      |
+Expiry                           |                              | verified without a database        |
+_________________________________|______________________________|____________________________________|
+Password storage                 |bcrypt/Argon2                 | Intentuonally slow, includes salt  |
+_________________________________|______________________________|____________________________________|
 
 ^*What is XOR? XOR is an acronym standing for "exlusive OR". It's a logical operation that aims to compare two bits to then answer if they are different. 
 If they are indeed different then the result is 1, otherwise it is 0.
@@ -150,31 +183,77 @@ between the key material and the message data), and it preserves the security pr
 */
 
 //Examples 
+
 //1
 
-//SENDER
-$secretKey = 'super_secret_shared_key'; 
-$message = ' Hello Antonio'; 
+//Step 1: generate a secure key
 
-$tag = hash_hmac(
-    'sha256', //hash fun
-    $message, //Message (M)
-    $secretKey, //Shared key (K)
-    false // false = hex output , true = raw bytes
-);
 
+function generateSecretKey($length = 32) {
+    $secretKey = random_bytes($length)
+    return base64_encode($secretKey)
+}
+
+//generate and display key
+$jeyString = generateSecretKey(32);
+echo "Secret key (store this securely!): " . $keyString . "\n";
+
+//To use the key later, decode it back to bytes 
+$secretKey = base64_decode($keyString)
+
+###################################################################
+
+//Step 2: store the key securely
+
+//NEVER DO THIS
+define('SECRET_KEY', 'my-secret-123'); 
+
+//DO THIS: 
+//Option 1: Environment variables
+
+function getSecretKey(){
+    $key = getenv('HMAC_SECRET_KEY');
+    if (!$key) {
+        throw new Exeption('HMAC_SECRET_KEY not found in env');
+    }
+    return base64_decode($key);
+}
+$secretKey = getSecretKey();
+
+//Option 2: web.config files 
+$secret_config_file = require '/var/secret/hmac_config.php';
+$secretKey = base64_decode($secret_config_file['hmac_secret']);
+
+//Step 3: Generate HMac
+$message = "Trust me!"
+
+function create_HMAC($secretKey, $message, $algorithm = 'sha256') {
+    return hash_hmac($algorithm, $message, $secretKey);
+}
+$sentTag = create_HMAC($secretKey, $message);
 echo $tag;
 
-//RECEIVER
-$secretKey = 'super_secret_shared_key';
-$message   = 'Hello Antonio';
-$receivedTag = $_POST['tag'];
+//Step 4: Verify Hmac 
+$secret_config_file = require '/var/secret/hmac_config.php';
+$secretKey = base64_decode($secret_config_file['hmac_secret']);
 
-$expectedTag = hash_hmac('sha256', $message, $secretKey);
-
-if (hash_equals($expectedTag, $receivedTag)) { //hash_equals() uses constant time 
-    echo "Message is authentic and unmodified";
-} else {
-    echo "Invalid message";
+function verifyHMAC($secretKey, $message, $sentTag, $algorithm = 'sha256') {
+    $expectedTag = hash_hmac($algorithm, $message, $secretKey);
+    //REMEMBER TO ALWAYS USE CONSTANT-TIME COMPARISON
+    return hash_equals($sentTag, $expectedTag); //here's where it produces true or false
 }
+
+
+$isValid = verifyHMAC($secretKey, $message, $sentTag); 
+
+if ($isValid) {
+    echo "You can trust this message!\n";
+}else{
+    echo "You CANNOT trust this message!\n";
+}
+
+
+
+
+
 
