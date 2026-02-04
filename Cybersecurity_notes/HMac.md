@@ -177,7 +177,6 @@ between the key material and the message data), and it preserves the security pr
         -Python: hmac.compare_digest()
         
         You should always use these, never == for secrets.
-*/
 
 Examples 
 
