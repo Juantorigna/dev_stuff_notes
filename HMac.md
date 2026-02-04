@@ -1,6 +1,3 @@
-
-<?php
-/*
 HMac 
 Two parties want to communicate, but they want to ensure the contents of their communication have not been tampered with.
 
@@ -182,13 +179,12 @@ between the key material and the message data), and it preserves the security pr
         You should always use these, never == for secrets.
 */
 
-//Examples 
+Examples 
 
-//1
-
+Example (1)
+```php
 //Step 1: generate a secure key
 
-<?php
 function generateSecretKey($length = 32) {
     $secretKey = random_bytes($length);
     return base64_encode($secretKey);
@@ -201,8 +197,7 @@ echo "Secret key (store this securely!): " . $keyString . "\n";
 //To use the key later, decode it back to bytes 
 $secretKey = base64_decode($keyString);
 
-###################################################################
-
+//_________________________________________________________________________________________//
 //Step 2: store the key securely
 
 //NEVER DO THIS
@@ -223,7 +218,7 @@ $secretKey = getSecretKey();
 //Option 2: web.config files 
 $secret_config_file = require '/var/secret/hmac_config.php';
 $secretKey = base64_decode($secret_config_file['hmac_secret']);
-
+//_________________________________________________________________________________________//
 //Step 3: Generate HMac
 $message = "Trust me!";
 
@@ -232,7 +227,7 @@ function create_HMAC($secretKey, $message, $algorithm = 'sha256') {
 }
 $sentTag = create_HMAC($secretKey, $message);
 echo $sentTag;
-
+//_________________________________________________________________________________________//
 //Step 4: Verify Hmac 
 $secret_config_file = require '/var/secret/hmac_config.php';
 $secretKey = base64_decode($secret_config_file['hmac_secret']);
@@ -251,29 +246,202 @@ if ($isValid) {
 }else{
     echo "You CANNOT trust this message!\n";
 }
-?>
-/**Example 2: Api request signing (Client-->Server)
+```
+______________________________________________________________________________________
+Example (2): Api request signing (Client-->Server)
    Situation: My app calls my API, and I want it to ensure the following are true: 
     a) The request came from my app; 
     b) The rquest hasn't been tampered with; 
     c) The request isn't a replay.
-**/
 
-
-tep 1: frontend.js (untrusted client)
+Step 1: frontend.js (untrusted client)
 
 
 <script>
-async function sendBooking() {
-    const response = await fetch('7api/crete-booking.php'
-    ])
-    
+async function sendBooking(data) {
+    const response = await fetch('7api/crete-booking.php', {
+        method: 'POST';
+        header: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+    return response.json();
 }
 </script>
 
+Step 2: trusted boundary (api/create-booking.php)
 
+```php 
+//this is a protected backend endpoint. Anything coming to is is considered malicious until proven innocent.
+$secretKey = base64_decode(getenv('HMAC_SECRET_KEY')); //base64_decode() is used because environment variales are strings and cryptographic keys must be raw bytes. Base64 is used ONLY for safe storage and transport. 
 
+$method = $_SERVER['REQUEST_METHOD']; // we include method to prevent using a valid signature for GET to permorm POST actions
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // we include path to prevent replaying a signed request on another endpoint
 
+// Read authentication headers (all untrusted)
+$timestamp = $_SERVER['HTTP_X_TIMESTAMP'] ?? null;
+$nonce = $_SERVER['HTTP_X_NONCE'] ?? null; 
+$signature = $_SERVER['HTTP_X_SIGNATURE'] ?? null; 
 
+//Missing authentication data --> immediate total rejection 
+if (!$timestamp || !$nonce || !$signature) {
+    http_response_code(400);
+    exit('Missing authentication headers');
+}
+
+//read raw request body 
+$body = file_get_contents('php://input'); // 'php://input' reads raw bytes, avoids php auto-replaying, ensures signature matches EXACT payload
+
+//replay protection using $timestamp
+if (abs(time() - (int)$timestamp) > 300) {
+    http_response_code(401);
+    exit('Expired request');
+}
+
+//replay protection via nonce
+if (nonceAlreadyUsed($nonce)) {
+    http_response_code(401);
+    exit('Replay detected');
+}
+
+// Canonical string recontraction (MUST match sender)
+$canonical = implode("\n", [
+    $method, 
+    $path, 
+    $timestamp, 
+    $nonce,
+    hash('sha256', $body)
+]); // hashing the body instead of embeding it allows to avoid canonical ambiguity, provides fixed-length representation, it is safe for large payloads
+
+//compute excpected signature
+$expected = hash_hmac('sha_256', $canonical, $secretKey)
+
+// Constant-time comparison (!!IMPORTANT)
+if (!hash_equals($expected, $signature)) {
+    http_response_code(401);
+    exit('Invalid signature');
+}
+
+echo "Request accepted";
+```
+
+Example (3): Backend-to-Backend HMAC (Internal services)
+
+    Step 1: service_a.php (Sender)
+
+```php
+//This is a trusted internal service. However, it still signd requests because of the no-trust assumption of the network, the importance of logging errors. 
+
+$secretKey = base64_decode(getenv('INTERNAL_HMAC_KEY'));
+
+$payload = json_encode([
+    'user_id' => $_POST['user_id'], //this is the untrusted action in question
+    'action' => $_POST['action']
+]);
+
+$timestamp = time();
+$nonce = bin2hex(random_bytes(16)); //cryptographically secure nonce
+
+$canonical = implode("\n", [ //implode create a deterministic byte sequence so that order matters, separators matter, and both sides must rebuild the exact same string
+    'POST', //binds the signature to a http method
+    '/internal/process.php', //it binds the signature to a specific endpoint. It prevents replaying it on another route
+    $timestamp, 
+    $nonce,
+    hash('sha_256', $payload)
+    ]);
+
+$signature = hash_hmac('sha_256', $canonical, $secretKey);
+
+sendHttpRequest(
+    'internal/process.php', 
+    $payload, 
+    [
+        'X-timestamp' => $timestamp, 
+        'X-nonce' => $nonce, //here ypu are preparing the message by stating THIS is the nonce $_SERVER['HTTP_X_NONCE'] needs to look for
+        'X-signature' => $signature
+    ]
+); 
+```
+    Step 2: internal/process.php (Receiver)
+
+```php
+$secretKey = base64_decode(getenv('INTERNAL_SECRET_KEY')); 
+
+$body = file_get_contents('php://input'); 
+
+$timestamp = $_SERVER['HTTP_X_TIMESTAMP'];// $_SERVER is a PHP superglobal array automatically populated by the web server, containing metadata about the current HTTP request and server environment.
+$nonce = $_SERVER['HTTP_X_NONCE'];
+$signature = $_SERVER['HTTP_X_SIGNATURE']; 
+
+//recontract the canonical request exactly as it were
+$canonical = implode("\n", [
+    $_SERVER['REQUEST_METHOD'], 
+    parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH),
+    $timestamp, 
+    $nonce, 
+    hash('sha_256', $body)
+]);
+
+$expected = hash_mac('sha_256', $canonical, $secretKey)
+
+if (!hash_equals($expected, $signature)) {
+    http_response_code(401); 
+    exit('Unauthorized');
+}
+```
+
+Example (4): Signed Cookies (Statless session)
+
+    Step 1
+
+login.php
+```php
+//user already authenticated via password / MFA
+
+$userId = $authenticatedUserId; 
+
+$payload = [
+    'uid' => $userId; 
+    'exp' => time() + 3600 //session expiration
+]; 
+
+$secretKey = base64_decode(getenv('COOKIE_SECRET')); 
+
+$encoded = base64_encode(json_encode($payload)); //cookies must be ASCII-safe, hence base64
+
+//Sign the cookie
+$tag = hash_hmac('sha_256', $encoded, $secretKey); 
+
+// Final cooke format: data.signature
+
+$cookieValue = $encoded . '.' . $tag; //encoded(payload).tag
+
+setcookie('session', $cookieValue, [
+    'secure' => true, //HTTPS ONLY
+    'httponly' => true, //JS cannot read
+    'samesite' => 'Strict'// CSRF mitigation 
+]); 
+```
+    Step 2
+protected.php
+
+```php
+if (!isset($_COOKIE['session'])) { // isset() checks whether a variable exists AND is not null
+    exit('No session'); 
+    } 
+
+$secretKey = base64_decode(getenv('COOKIE_SECRET')); 
+
+[$payload, $sentTag] = explode('.', $_COOKIE['session'], 2); //take the cookie recevied and separate it into $payload and $sentTag by using '.' as the separator
+
+$expected = hash_mac('sha_256', $payload, $secretKey)
+
+//detect tampering
+
+if (!hash_equals($expected, $sentTag)) {
+    exit('Cookie modified'); 
+}
+```
 
 
