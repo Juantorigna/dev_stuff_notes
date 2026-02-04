@@ -1,4 +1,3 @@
-HMac 
 Two parties want to communicate, but they want to ensure the contents of their communication have not been tampered with.
 
 Hmac is a cryptographic technique that proves: 
