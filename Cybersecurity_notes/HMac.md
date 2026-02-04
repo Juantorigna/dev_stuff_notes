@@ -177,8 +177,8 @@ You do not need it for:
 
 How this is handled in real code? Most crypto libraries provide safe comparison functions:
 
--PHP: hash_equals()
--Python: hmac.compare_digest()
+**a)** PHP: hash_equals()
+**b)** Python: hmac.compare_digest()
 
 You should always use these, never == for secrets.
 
