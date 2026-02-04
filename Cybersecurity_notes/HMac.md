@@ -29,6 +29,7 @@ Let:
 - H = the underlying hash function.
 
 Two keys are produced from the original: 
+
         Inner_key = XOR_1(K);^*
         Outer_key = XOR_2(K).
 
