@@ -23,13 +23,14 @@ A pair using this system has to agree on both the key and the hashing mechanism.
 It often adds little value if no untrusted boundary exists, but it can still protect against client-side tampering or forged requests.
 
 Workflow: 
-1. The sender computes the Hmac: 
+1. The sender computes the HMAC: 
 Let: 
-- M = The plain message; 
-- K = the shared key; 
-- H = the underlying hash function.
 
-Two keys are produced from the oSriginal: 
+M = The plain message; 
+K = the shared key; 
+H = the underlying hash function.
+
+Two keys are produced from the original: 
 
     Inner_key = XOR_1(K);^*
     Outer_key = XOR_2(K).
@@ -40,10 +41,10 @@ Then:
 
 2. The receiver: 
 
--Receives the tag, along with M;
--Recomputes expected_tag(K, M) using the secret key in their possession; 
--Checks if tag = expected_tag
--The comparison must be done in CONSTANT TIME^***
+Receives the tag, along with M;
+Recomputes expected_tag(K, M) using the secret key in their possession; 
+Checks if tag = expected_tag
+The comparison must be done in CONSTANT TIME^***
 
 If
     tag = expected_tag
@@ -57,10 +58,10 @@ then M is not authentic and has been modified.
 
 HMAC does not answer to the following quetions when follows the structure aferomentioned: 
 
-i.Is this message new?
-ii.Is it expected now?
-iii.Is it appropriate for context?
-iv.Is it authorized for this action?
+1. Is this message new?
+2. Is it expected now?
+3. Is it appropriate for context?
+4. Is it authorized for this action?
 
 The previous questions raise the following vulnerabilities: 
 
@@ -71,12 +72,12 @@ The previous questions raise the following vulnerabilities:
 
 To fully validate a message you must bind HMAC to: 
 
-i.Body --> Integrity; 
-ii.Http --> Prevents misuse; 
-iii.Path/action --> Prevents confusion;
-iv.Timestamp --> Prevents replay;
-v.Nonce --> Prevents duplication; 
-vi.Sender ID --> Prevents cross-app reuse.
+1. Body --> Integrity; 
+2. Http --> Prevents misuse; 
+3. Path/action --> Prevents confusion;
+4. Timestamp --> Prevents replay;
+5. Nonce --> Prevents duplication; 
+6. Sender ID --> Prevents cross-app reuse.
 
 Common real-world use cases: 
 
