@@ -38,6 +38,7 @@ Then:
     tag = HMAC(K,M) where tag = H(Outer_key || H(Inner_key || M))^**
 
 2) The receiver: 
+
 -Receives the tag, along with M;
 -Recomputes expected_tag(K, M) using the secret key in their possession; 
 -Checks if tag = expected_tag
