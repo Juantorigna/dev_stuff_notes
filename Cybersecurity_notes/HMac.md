@@ -202,8 +202,6 @@ echo "Secret key (store this securely!): " . $keyString . "\n";
 $secretKey = base64_decode($keyString);
 ```
 
-//_________________________________________________________________________________________//
-
 ```php
 //Step 2: store the key securely
 
@@ -240,7 +238,6 @@ function create_HMAC($secretKey, $message, $algorithm = 'sha256') {
 $sentTag = create_HMAC($secretKey, $message);
 echo $sentTag;
 ```
-______________________________________________________________________________________________
 
 ```php
 //Step 4: Verify HMAC 
@@ -261,15 +258,13 @@ if ($isValid) {
     echo "You CANNOT trust this message!\n";
 }
 ```
-______________________________________________________________________________________________
-
 Example (2): Api request signing (Client-->Server)
-   Situation: My app calls my API, and I want it to ensure the following are true: 
-    a) The request came from my app; 
-    b) The rquest hasn't been tampered with; 
-    c) The request isn't a replay.
+Situation: My app calls my API, and I want it to ensure the following are true: 
+**a)** The request came from my app; 
+**b)** The rquest hasn't been tampered with; 
+**c)** The request isn't a replay.
 
-    Step 1: frontend.js (untrusted client)
+Step 1: frontend.js (untrusted client)
 
 ```js
 async function sendBooking(data) {
@@ -284,7 +279,7 @@ async function sendBooking(data) {
 }
 ```
 
-    Step 2: trusted boundary (api/create-booking.php)
+Step 2: trusted boundary (api/create-booking.php)
 
 ```php 
 //this is a protected backend endpoint. Anything coming to is is considered malicious until proven innocent.
@@ -344,7 +339,8 @@ echo "Request accepted";
 Example (3): Backend-to-Backend HMAC (Internal services)
 
 ```php
-    //Step 1: service_a.php (Sender)
+//Step 1: service_a.php (Sender)
+
 //This is a trusted internal service. However, it still signd requests because of the no-trust assumption of the network, the importance of logging errors. 
 
 $secretKey = base64_decode(getenv('INTERNAL_HMAC_KEY'));
@@ -408,9 +404,9 @@ if (!hash_equals($expected, $signature)) {
 
 Example (4): Signed Cookies (Statless session)
 
-
 ```php
-    //Step 1, login.php
+//Step 1, login.php
+
 //user already authenticated via password / MFA
 
 $userId = $authenticatedUserId; 
@@ -439,7 +435,7 @@ setcookie('session', $cookieValue, [
 ```
   
 ```php
-    //Step 2, protected.php
+//Step 2, protected.php
 
 if (!isset($_COOKIE['session'])) { // isset() checks whether a variable exists AND is not null
     exit('No session'); 
