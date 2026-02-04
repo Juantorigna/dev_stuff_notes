@@ -2,8 +2,8 @@ Two parties want to communicate, but they want to ensure the contents of their c
 
 HMAC is a cryptographic technique that proves: 
 
-a. Who sent the message (authentication)
-b. The message wasn't changed (integrity)
+1. Who sent the message (authentication)
+2. The message wasn't changed (integrity)
 
 HMAC does not provide confidentiality; encryption (e.g. TLS/AES) is required for privacy.
 
@@ -80,13 +80,13 @@ vi.Sender ID --> Prevents cross-app reuse.
 
 Common real-world use cases: 
 
-a. API Authentication. 
+1. API Authentication. 
 Your app --> sends request to payment API --> Payment API verifies the request came from you. 
-b. Webhook Verification
+2. Webhook Verification
 Stripe sends you a webhook --> "checkout session completed" --> your server verifies Stripe actually sent it
-c. Signed Cookies
+3. Signed Cookies
 The user logs in --> the server creates a session cookie with HAC --> the user returns --> the server checks the cookie hasn't been changed.
-d. File integrity
+4. File integrity
 The user downloads a software --> it comes with an HMAC tag --> before installing it, verify the file wasn't corrupted or modified
 
 Table of when to use HMAC vs alternatives
