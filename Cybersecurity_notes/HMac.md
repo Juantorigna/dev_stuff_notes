@@ -40,10 +40,10 @@ Then:
 
 2. The receiver: 
 
-Receives the tag, along with M;
-Recomputes expected_tag(K, M) using the secret key in their possession; 
-Checks if tag = expected_tag
-The comparison must be done in CONSTANT TIME^***
+- **a)** Receives the tag, along with M;
+- **b)** Recomputes expected_tag(K, M) using the secret key in their possession; 
+- **c)** Checks if tag = expected_tag
+- **c)**The comparison must be done in CONSTANT TIME^***
 
 If
     tag = expected_tag
@@ -57,17 +57,17 @@ then M is not authentic and has been modified.
 
 HMAC does not answer to the following quetions when follows the structure aferomentioned: 
 
-1. Is this message new?
-2. Is it expected now?
-3. Is it appropriate for context?
-4. Is it authorized for this action?
+**a)** Is this message new?
+**b)** Is it expected now?
+**c)** Is it appropriate for context?
+**d)** Is it authorized for this action?
 
 The previous questions raise the following vulnerabilities: 
 
-1. Replay attacks (very important). The attacker can send the exact same request just sent; 
-2. Valid BUT unintended message. HMAC proves authorship, not intent;
-3. Context confusion. There must be method + path + scope included in the signature;
-4. Ordering attacks. If messages are processed in sequence, an attacker can replay or reorder them. 
+**a)** Replay attacks (very important). The attacker can send the exact same request just sent; 
+**b)** Valid BUT unintended message. HMAC proves authorship, not intent;
+**c)** Context confusion. There must be method + path + scope included in the signature;
+**d)** Ordering attacks. If messages are processed in sequence, an attacker can replay or reorder them. 
 
 To fully validate a message you must bind HMAC to: 
 
