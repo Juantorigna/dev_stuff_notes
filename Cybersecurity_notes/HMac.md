@@ -2,21 +2,21 @@ Two parties want to communicate, but they want to ensure the contents of their c
 
 HMAC is a cryptographic technique that proves: 
 
-a. Who sent the message (authentication);
-b. The message wasn't changed (integrity).
+a. Who sent the message (authentication)
+b. The message wasn't changed (integrity)
 
 HMAC does not provide confidentiality; encryption (e.g. TLS/AES) is required for privacy.
 
 HMAC uses:
 
 1. Shared secret key: 
-    A shared key needed to authenticate the sender as a trusted party. 
+A shared key needed to authenticate the sender as a trusted party. 
 2. Hash function:
-     A mathematical algorithm that has the role of applying a one-way cryptographic transformation to what is sent to the receiver.
-     The receiver needs to apply the same method to the plain message and the key in their possession to then confront the result with the received string.
-     If there is a match, the message has not been tampered with. 
-     It is preferable to use an hash function since it is a deterministic, fast, and constant-time algorithm like SHA-256 or SHA-512.
-     The algorithm choice for HMAC is fundamentally different from that of password storing. As a matter of fact, salt and pepper are not applied in this context.  
+A mathematical algorithm that has the role of applying a one-way cryptographic transformation to what is sent to the receiver.
+The receiver needs to apply the same method to the plain message and the key in their possession to then confront the result with the received string.
+If there is a match, the message has not been tampered with. 
+It is preferable to use an hash function since it is a deterministic, fast, and constant-time algorithm like SHA-256 or SHA-512.
+The algorithm choice for HMAC is fundamentally different from that of password storing. As a matter of fact, salt and pepper are not applied in this context.  
 
 A pair using this system has to agree on both the key and the hashing mechanism. 
 
