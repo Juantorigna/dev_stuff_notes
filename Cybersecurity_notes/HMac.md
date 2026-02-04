@@ -23,33 +23,33 @@ It often adds little value if no untrusted boundary exists, but it can still pro
 
 Workflow: 
 1) The sender computes the Hmac: 
-    Let: 
-        - M = The plain message; 
-        - K = the shared key; 
-        - H = the underlying hash function.
+Let: 
+- M = The plain message; 
+- K = the shared key; 
+- H = the underlying hash function.
 
-        Two keys are produced from the original: 
+Two keys are produced from the original: 
         Inner_key = XOR_1(K);^*
         Outer_key = XOR_2(K).
 
-        Then:    
+Then:    
         tag = HMAC(K,M) where tag = H(Outer_key || H(Inner_key || M))^**
 
 2) The receiver: 
-    -Receives the tag, along with M;
-    -Recomputes expected_tag(K, M) using the secret key in their possession; 
-    -Checks if tag = expected_tag
-    -The comparison must be done in CONSTANT TIME^***
+-Receives the tag, along with M;
+-Recomputes expected_tag(K, M) using the secret key in their possession; 
+-Checks if tag = expected_tag
+-The comparison must be done in CONSTANT TIME^***
 
 If tag = expected_tag then M is authentic and unmodified; 
 If tag != expected_tag then M is not authentic and has been modified.
 
 HMac does not answer to the following quetions when follows the structure aferomentioned: 
 
-    i.Is this message new?
-    ii.Is it expected now?
-    iii.Is it appropriate for context?
-    iv.Is it authorized for this action?
+i.Is this message new?
+ii.Is it expected now?
+iii.Is it appropriate for context?
+iv.Is it authorized for this action?
 
 The previous questions raise the following vulnerabilities: 
 
@@ -59,12 +59,12 @@ The previous questions raise the following vulnerabilities:
 4) Ordering attacks. If messages are processed in sequence, an attacker can replay or reorder them. 
 
 To fully validate a message you must bind HMac to: 
-    i.Body --> Integrity; 
-    ii.Http --> Prevents misuse; 
-    iii.Path/action --> Prevents confusion;
-    iv.Timestamp --> Prevents replay;
-    v.Nonce --> Prevents duplication; 
-    vi.Sender ID --> Prevents cross-app reuse.
+i.Body --> Integrity; 
+ii.Http --> Prevents misuse; 
+iii.Path/action --> Prevents confusion;
+iv.Timestamp --> Prevents replay;
+v.Nonce --> Prevents duplication; 
+vi.Sender ID --> Prevents cross-app reuse.
 
 Common real-world use cases: 
 
