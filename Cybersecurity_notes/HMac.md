@@ -43,7 +43,7 @@ Then:
 - **a)** Receives the tag, along with M;
 - **b)** Recomputes expected_tag(K, M) using the secret key in their possession; 
 - **c)** Checks if tag = expected_tag;
-- **d)**The comparison must be done in CONSTANT TIME^^^
+- **d)** The comparison must be done in CONSTANT TIME^^^
 
 If
     tag = expected_tag
