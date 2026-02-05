@@ -50,7 +50,10 @@ In MySQL
 
     'user'@'host'
 
-is the real identiy, not the username. This means that "root@localhost" != root@%. Even if the name is the same, the scope is different. This is very important for security. 
+is the real identiy, not the username. This means that
+    "root@localhost" != root@%.
+
+Even if the name is the same, the scope is different. This is very important for security. 
 
 **How does MySQL use host + port?**
 
@@ -63,7 +66,7 @@ Examples:
 
 ### Secton 5. Why are root/admin accounts dangerous?
 
-**root** can perform all actions on the database, such as 
+**root** can perform all actions on the database, such as: 
 
 - Drop any db
 - Read any table
@@ -82,10 +85,11 @@ Here's the golden rule to db security:
 Example 
 
 Component | Needs
-Web app | SELECT, INSERT
-Admin tool | ALTER
-Migration script | CREATE
-Root | Setup only
+|---------|-------|
+|Web app | SELECT, INSERT |
+|Admin tool | ALTER |
+|Migration script | CREATE |
+|Root | Setup only |
 
 
 
