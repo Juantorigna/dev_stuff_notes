@@ -68,7 +68,7 @@ The previous questions raise the following vulnerabilities:
 - **a)** Replay attacks (very important). The attacker can send the exact same request just sent
 - **b)** Valid BUT unintended message. HMAC proves authorship, not intent
 - **c)** Context confusion. There must be method + path + scope included in the signature
-- **d) Ordering attacks. If messages are processed in sequence, an attacker can replay or reorder them
+- **d)** Ordering attacks. If messages are processed in sequence, an attacker can replay or reorder them
 
 To fully validate a message you must bind HMAC to: 
 - **a)** Body --> Integrity
@@ -120,6 +120,7 @@ They are public costants with fixed patterns and thus the same for everyone.
     Outer_key = K ⊕ opad (apply XOR with opad on key)
 
 ^^ || stands for "concatenate the bytes in this exact order. 
+
 ^^^ An operation is "constant time" if it takes the same amount of time to run, no matter what the input is.
 If an operation runs faster or slower an attacker can learn info just by measuring how long it takes to perform said operation and its input.
 This is called timing side-channel attack.     
@@ -185,8 +186,8 @@ How this is handled in real code?
 
 Most crypto libraries provide safe comparison functions:
 
--PHP: hash_equals()
--Python: hmac.compare_digest()
+- **PHP**: hash_equals()
+- **Python**: hmac.compare_digest()
 
 You should always use these, never == for secrets.
 
@@ -267,9 +268,9 @@ Example (2): Api request signing (Client-->Server)
 
 Situation: My app calls my API, and I want it to ensure the following are true: 
 
-a) The request came from my app; 
-b) The rquest hasn't been tampered with; 
-c) The request isn't a replay.
+- **a)** The request came from my app 
+- **b)** The request hasn't been tampered with 
+- **c)** The request isn't a replay
 
 ```js
 //Step 1: frontend.js (untrusted client)
