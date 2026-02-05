@@ -85,7 +85,7 @@ Here's the golden rule to db security:
 Example 
 
 Component | Needs
-|---------|-------|
+|:---------|:-------:|
 |Web app | SELECT, INSERT |
 |Admin tool | ALTER |
 |Migration script | CREATE |
