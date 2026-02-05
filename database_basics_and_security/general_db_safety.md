@@ -41,3 +41,50 @@ How to limit blast radius
         app_admin    | Maintenance       | Rare, manual use              |
         _____________|___________________|_______________________________|
             
+    (4) Pssword-specific rules
+        Correct handling: 
+            *Receive password over HTTPS; 
+            *Hash immediatly with 
+
+            ```php
+            password_hash($password, PASSWORD_ARGON2ID);
+            ```
+         *NEVER store plain text; 
+         *NEVER log psw; 
+         NEVER double hash.
+        
+        Optional hardening: Pepper. 
+
+    (5) SQL safety (mandatory): 
+
+        - ALWAYS prepare statements; 
+        - NEVER concatenate SQL; 
+        - NEVER trust front-end validation; 
+        - Validate inputs BEFORE queries. 
+
+    Most real-world db breaches do NOT break cryptography. They abuse HOW SQL queries are constructed. 
+
+    You can have Argon2id, HTTPS, HMAC, ecryoted bak, and still lose everything ig SQL is handled incorrectly. 
+
+    What to do then? 
+        a) ALWAUS prepare STATEMENTS. 
+        A prepared statement separates code form data. Instead of building a query like a string, you tell the db: 
+            i. "This here is the SQL logic"; 
+            ii. "This here is the actual value". 
+
+        !! DANGEROUS !! --> string concatenation
+
+    ```php
+    $sql = "SELECT * FROM users WHERE email = '$email'"; 
+    ```
+        If $email is : 
+
+    ```php 
+    'test@example.com' OR '1' ='1
+    ```
+        The query becomes: 
+
+    ```php
+    SELECT * FROM users WHERE email='test@example.com' OR '1' ='1
+    ```
+    
