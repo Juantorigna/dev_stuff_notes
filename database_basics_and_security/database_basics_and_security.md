@@ -109,6 +109,107 @@ How would an ideal least privilege workflow b structured, then?
 - **c)** **app_rw**. Read and write only. Used by endpoint to create and/or update data. It should not be allowed to alter data. 
 - **d)** **app_ro**. Read only, used by paged to display data only. It should not be allowed to write anything. 
 
+### Section 8. Creating roles.
+A role is a group of privileges we can assign to users. Instead of granting the, directly to each user, we define roles once, and grant them globally. <br>
+Roles allow for less repetition, less chance of mistake, and are easy to audit and update. <br>
+
+To create them we: 
+
+```sql
+    CREATE ROLE 'role_app_ro';
+    CREATE ROLE 'role_app_rw'; 
+    CREATE ROLE 'role_migrator'; 
+```
+
+To grant them privileges we proceed in the following way. Assume our schema is called "*camping_db*": 
+
+Read-only: 
+```sql
+    GRANT SELECT ON camping_db.* TO 'role_app_ro';
+```
+
+Reading and writing only: 
+```sql
+    GRANT, SELECT, INSERT, UPDATE, DELETE ON camping_db.* TO 'role_app_rw';
+```
+
+Migration (schema evolution): 
+```sql
+    GRANT, CREATE, ALTER, DROP, INDEX, REFERENCES ON camping_db.* TO 'role_migrator'; 
+```
+
+### Section 9. Creating non-root users with host restrictions
+
+By "host restriction" we mean defining where login is allowed from. 
+
+For local-dev, we: 
+```sql
+    CREATE USER 'camp_app_ro'@'localhost' IDENTIFIED BY 'use-a-strong-password'; 
+    CREATE USER 'camp_app_rw'@'localhost' IDENTIFIED BY 'use-a-strong-password'; 
+    CREATE USER 'camp_app_migrator'@'localhost' IDENTIFIED BY 'use-a-strong-password'; 
+```
+
+With "*use-a-strong-password*" we mean creating a brand-new password for the user, not your MySQL account password. 
+
+### Section 10. Assigning roles to users and setting default role
+To grant roles to users run: 
+
+```sql
+GRANT 'role_app_ro' TO 'campapp_ro'@'localhost'; 
+GRANT 'role_app_rw' TO 'campapp_rw@localhost';
+GRANT 'role_migrator' TO 'camp_migrator'@'localhost';  
+```
+Then, set default role, so it is active automatically, by: 
+
+```sql
+    SET DEFAULT ROLE 'role_app_ro' FOR 'camp_app_ro'@'localhost';
+    SET DEFAULT ROLE 'role_app_rw' FOR 'camp_app_rw'@'localhost'; 
+    SET DEFAULT ROLE 'role_app_migrator' FOR 'camp_migrator'@'localhost';
+```
+If we don't set a default role, the user may log in and have zero effective privilegies until the role is enabled for the session. 
+
+### Section 11. Verify privileges and test the boundaties
+
+- 1. Audit grants: 
+
+```sql
+    SHOW GRANTS FOR 'camp_app_ro'@'localhost';
+    SHOW GRANTS FOR 'camp_app_rw'@'localhost'; 
+    SHOW GRANTS FOR 'camp_migrator'@'localhost';
+```
+
+- 2. Test the rules. RO should fail on write: 
+
+```sql
+    INSERT INTO pitches(code, has_electricity) VALUES ('A1', true);
+    -- Expected: permission denied
+```
+RW should fail on schema changes: 
+```sql
+    CREATE TABLE test_table(id INT);
+    -- Expected: permission denied
+```
+### Section 12. Password rotation + revoking access
+Rotate password: 
+
+```sql
+    ALTER USER 'camp_app_rw'@'localhost' IDENTIFIED BY 'new-strong-password';
+```
+
+Revoke a role: 
+
+```sql
+REVOKE 'role_app_rw' FROM 'camp:app_rw'@0'localhost';
+```
+
+Revoke user entirely:
+
+```sql
+DROP USER 'camp_app_rw'@'localhost';
+```
+In case credentials leak, we can use the command we've just seen to restructure our DB access by: <br>
+rotating --> revoking --> replacing
+
 ## Part 2 - Database and schema creation (MySQL)
 
 During this section we'll learn while building a small database for a camping/reservation app. The main touched topics will be: 
@@ -159,13 +260,9 @@ It is useful cause if we ever forget to run
 We might end up creating tables in the wrong database. 
 
 ### Section 2. Create tables. 
-
 Tables are the data structure of a database. 
-
 #### Create **users** table 
-
 Run this at mysql>
-
 ```sql
    CREATE TABLE users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, /*big stands for "bigger range. We'll use it as Primary Key (PK)*/
