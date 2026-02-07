@@ -19,7 +19,7 @@ Open a terminal in your db dir, and run:
 
 By writing your account's password you'll be linked to MySQL servers. If successful, you'll see: 
 
-    Welcome to the MySQL monitor.
+    Welcome to the MySQL monitor
     mysql>
 
 ### Section 2. Connet via GUI (Workbench)
@@ -194,3 +194,32 @@ Since in our example we are building  db for a camping, we'll create a table ded
     UNIQUE KEY uq_pitches_code (code)
     ) ENGINE=InnoDB;
 ```
+
+We'll now add a table for reservations: 
+
+    ```sql
+    CREATE TABLE reservations (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, 
+        public_id CHAR(26) NOT NULL, 
+        user_id BIGINT UNSIGNED NOT NULL, 
+        pitch_id INT UNSIGNED NOT NULL, 
+
+        arrival_date DATE NOT NULL,
+        departure_date DATE NOT NULL, 
+
+        notes TEXT NULL, 
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+
+        PRIMARY KEY (id), 
+        UNIQUE KEY uq_res_public_id (public_id), 
+        KEY idx_res_user_date (user_id, arrival_date), 
+        KEY idx_res_pitch_date (pitch_id, arrival_date), 
+
+        CONSTRAINT fk_res_user
+            FOREIGN KEY (user_id) REFERENCES users(id)
+            ON DELETE RESTRICT ON UPDATE CASCADE, 
+
+        CONSTRAINT chk_dates
+            CHEK (departure_date > arrival_date)
+        ) ENGINE=InnoDB;
+    ```
