@@ -10,8 +10,9 @@ Some important context first. It is important to always have a threat-driven min
 ### Section 1.1. Connect via Command Line
 
 Open a terminal in your db dir, and run: 
-
+```sql
     mysql -u root -p
+```
 
 -u root --> username
 -p --> password
@@ -40,18 +41,22 @@ By running the following inside MySQL:
     SELECT user, host FROM mysql.user
 
 We'll see outputs like: 
-
-    - root@localhost
-    - mysql.session@localhost
+```sql
+    root@localhost
+    mysql.session@localhost
+```
 
 **Why do users have a host?**
 
 In MySQL
-
+```sql
     'user'@'host'
+```
 
 is the real identiy, not the username. This means that
-    "root@localhost" != root@%.
+```sql
+    "root@localhost" != root@%
+```
 
 Even if the name is the same, the scope is different. This is very important for security. 
 
@@ -104,15 +109,17 @@ During this section we'll learn while building a small database for a camping/re
 ### Section 0. Open MySQL and confirm where you are
 
 Open your terminal and access to MySQL using the commands learned from Part 1: 
+```sql
     mysql -u root -p
+```
 
 You'll be asked for your password, and if it is correct you'll have access to your MySQL account. 
 
 Once connected, run the following: 
-
-    SELECT VERSION(); //it tells you the MySQL you're running
+```sql
+    SELECT VERSION(); //it tells you the MySQL you are running
     SHOW DATABASES; //it tells you the databases you already have created
-
+```
 If you already have a db, you can run the following to start using it: 
 
     USE databasename //where "databasename is you db name
@@ -120,21 +127,22 @@ If you already have a db, you can run the following to start using it:
 ### Section 1. Create a database (schema)
 
 If the db doesn't exist yet, and you are building it form scratch, then run: 
-
+```sql
     CREATE DATABASE the_name_you_want; 
         DEFAULT CHARACTER SET utf8mb4 //utf8mb4 is the modern "full UTF-8" for MySQL
         DEFAULT COLLATE utf8mb4_0900_ai_ci; //this breaks down in multiple parts. **utf8mb4** is described above; **0900** stands for UNicode rules from teh UCA; **ai** accent-insensitive; **ci** stands for case insensitive
+```
 
 The expected query is "**Query OK, 1 row affected**".
     
 An important command to check which db you're using is: 
-
+```sql
     SELECT DATABASE(); 
-
+```
 It is useful cause if we ever forget to run
-
+```sql
     USE databasename; 
-
+```
 We might end up creating tables in the wrong database. 
 
 ### Section 2. Create tables. 
@@ -145,6 +153,7 @@ Tables are the data structure of a database.
 
 Run this at mysql>
 
+```sql
         CREATE TABLE users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     public_id CHAR(26) NOT NULL,
@@ -155,6 +164,7 @@ Run this at mysql>
     UNIQUE KEY uq_users_public_id (public_id),
     UNIQUE KEY uq_users_email (email)
     ) ENGINE=InnoDB;
+```
 
 The expected query telling you everything has worked fine is "**Query OK...**"
 
@@ -168,13 +178,13 @@ The expected query telling you everything has worked fine is "**Query OK...**"
 - **f)** Better crach recovery than older engines. 
 
 After running the code above we can check it writing: 
-
+```sql
     DESCRIBE users; 
-
+```
 If everything works out fine, we should see columns including headers like id, public:id, email, etc. 
 
 Since in our example we are building  db for a camping, we'll create a table dedicated to each pitch: 
-
+```sql
     CREATE TABLE pitches (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     code VARCHAR(20) NOT NULL,
@@ -183,3 +193,4 @@ Since in our example we are building  db for a camping, we'll create a table ded
     PRIMARY KEY (id),
     UNIQUE KEY uq_pitches_code (code)
     ) ENGINE=InnoDB;
+```
