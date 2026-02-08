@@ -515,3 +515,55 @@ return [
         return pdo_common($db, $db['rw_user'], $db['rw_pass']);
     }
 ```
+### Part 4. Protecting reads and displaying the DB data safely
+
+The threats we'll consider building defenses against are: 
+- 1. SQL injections. 
+- 2. XSS that might happen if we display user-provided content without encoding. 
+
+```php
+<?php
+//public/pitches.php
+require __DIR__ . '/../app/db.php';
+
+$pdo = db_ro();
+
+// Explicit column list: avoid SELECT *
+$stmt = $pdo->query("SELECT code, has_electricity, created_at FROM pitches ORDER BY code");
+$pitches = $stmt->fetchAll();
+
+function e(string $s): string {
+  return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+?>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Pitches</title>
+</head>
+<body>
+  <h1>Pitches</h1>
+
+  <table border="1" cellpadding="6">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Electricity</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($pitches as $p): ?>
+        <tr>
+          <td><?= e($p['code']) ?></td>
+          <td><?= $p['has_electricity'] ? 'Yes' : 'No' ?></td>
+          <td><?= e($p['created_at']) ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+</body>
+</html>
+
+```
