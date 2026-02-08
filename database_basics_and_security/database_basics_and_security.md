@@ -383,16 +383,93 @@ It is useful to keep a clean directory srchitecture like the following:
 
 Using this layout we'll keep everything under 7public web-accessible, while having /app as internal code only
 
-### Section 3. PHP DB connections with least privilege 
+#### Section 3.0. Goal / big picture
 
-In real projects you’d use env vars; this keeps it simple for learning.
+Let's set up a small DB connection layer that keeps the codebase clean and enforces “least privilege”: <br>
+- **a)** One shared function builds a PDO connection the same way every time. <br>
+- **b)** Two wrapper functions pick which DB user to connect with:
+- 1. read-only for SELECTs
+- 2. read/write for INSERT/UPDATE/DELETE
+
+In this way we won't repeat DSN/options logic, and our app code can just ask for “ro” or “rw” without worrying about credentials.
+
+##### Section 3.1. Wherw the DB settings live
+This is app/config.php is the configuration file that return an array with: 
+- **a)** connection details such as host, database name, harset, etc
+- **b)** the credentials for two users: 
+- 1. ro_user/ro_pass
+- 2. rw_user/rw_pass
+
+##### Section 3.2. The connection fatory
+**app/db.php** is the file that exposes functions that poduce PDO connections. These are:
+- 1. pdo_common($cfg, $user, $pass)
+- 2. db_ro() and db:rw()
+
+**pdo_common($cfg, $user, $pass**) knows hot to build a PDO connection given where to connect (done by $cfg that contains host, name, and charset), who is connecting ($user, $pass). <br>
+db_ro() and db_rw() are small wrappers that have the following goals: 
+- **a)** load config
+- **b)** grab $consig['db']
+- **c)** choose the correct credentials
+- **d)** call pdo_common(...)
+
+##### Section 3.3. Mental picture 
+
+Reading path: 
+    Our code (SELECT) → db_ro() → load config → pdo_common() → new PDO(...) → PDO handle
+
+Writing path: 
+    OUR code (INSERT/UPDATE/DELETE) → db_rw() → load config → pdo_common() → new PDO(...) → PDO handle
+
+Thus db_ro/db_rw are **puclic** entry points and **pdo_common** is the private file that does the actual work.
+
+##### Section 3.4. The shared builder
+The shared builder aferomentioned is "**pdo_commo(...)**" and it is used as a single source for creating PDO connections: 
+```php
+    pdo_common(array $cfg, string $user, string $pass): PDO
+```
+It takes: 
+- **a)** $cfg where we stored host, name, and charset
+- **b)** $user, $pass for credentials depending on what I want. Either rw or ro.
+
+And it returns a **configured PDO connection handle**. The whole point of this is have just one place where I can change options. 
+
+##### Section 3.4.1. Step-by_step inside **pdo_common()** *****
+- 1. Build the DSN (Data Source Name) to tell the PDO which driver to use (mysql) and which host, database, charset to connect with 
+
+```php
+    mysql:host='localhost;dbname=camping_db;charset=utf8mb4
+```
+We use sprintf() to plug config values into the DSN template. 
+
+##### Section 3.4.2. Creating the PDO object 
+
+To create the connection: 
+```php
+new PDO($dsn, $user, $pass, [/* optuons*/]);
+```
+##### Section 3.4.2. Applying consistent PDO options
+To set options so the connection behaves predictably:
+- 1. PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION (I want errors to throw exceptions instead od failing silently)
+- 2. PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC (I want rows as associate arrays), so I can: 
+```php
+    $row['email']
+```
+rather than numeric indexes like **$row[0]**.
+- 3. **PDO::ATTR_EMULATE_PREPARES => false** is used to express the preference of real prepared statements instead of emulated ones. 
+
+##### Section 3.4.3
+By: 
+```php
+    function db_ro(): PDO
+```
+We use **: PDO** as a return type hint, meaning "this functions returns a PDO object".
+
+##### Section 3.4.4. The full snippet
 
 ```php
     //app/config.php
 
-    <?php
-// app/config.php
-    return [
+return [
     'db' => [
         'host' => '127.0.0.1',
         'name' => 'camping_db',
@@ -406,6 +483,7 @@ In real projects you’d use env vars; this keeps it simple for learning.
     ]
     ];
 ```
+
 ```php
     //app/db.php (PDO)
 
@@ -419,7 +497,7 @@ In real projects you’d use env vars; this keeps it simple for learning.
 
         $pdo = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, //trhow exceptions
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, //associative arryas
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, //associative arryas^
             PDO::ATTR_EMULATE_PREPARES => false, //real prepared statements
         ]);
         return $pdo;
@@ -437,9 +515,3 @@ In real projects you’d use env vars; this keeps it simple for learning.
         return pdo_common($db, $db['rw_user'], $db['rw_pass']);
     }
 ```
-We have a generic fucntion we've called **pdo_common()** that knows how to build a MySQL connection. Then, we have two smaller wrappers. <br>
-**db_ro()** is used to connect via the read-only user from config.php. The same goes for **db_rw()** with the read and write permissions. 
-
-Code segmentation and explanation: 
-
-
