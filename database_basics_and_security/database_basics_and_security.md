@@ -7,7 +7,7 @@ In this section we'll see how to set MySQL to run locally, how to connect via CL
 ### Section 1
 Some important context first. It is important to always have a threat-driven mindset. In this way, we will always assume credentials can leak, bugs can exist, and systems can be misused
 
-### Section 1.1. Connect via Command Line
+#### Section 1.1. Connect via Command Line
 
 Open a terminal in your DB dir, and run: 
 ```sql
