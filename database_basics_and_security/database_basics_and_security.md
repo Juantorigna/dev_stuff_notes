@@ -542,48 +542,67 @@ The threats we'll consider building defenses against are:
 
 ```php
 <?php
-//public/pitches.php
-require __DIR__ . '/../app/db.php';
+    // /public/pitches.php
+    require __DIR__ . '/../app/db.php';
 
-$pdo = db_ro();
+    $pdo = db_ro();
 
-// Explicit column list: avoid SELECT *
-$stmt = $pdo->query("SELECT code, has_electricity, created_at FROM pitches ORDER BY code");
-$pitches = $stmt->fetchAll();
+    // Optional filter from query string (user-controlled input!)
+    $hasElectricity = filter_input(INPUT_GET, 'has_electricity', FILTER_VALIDATE_INT);
 
-function e(string $s): string {
-  return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-}
-?>
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Pitches</title>
-</head>
-<body>
-  <h1>Pitches</h1>
+    // Base query (explicit column list)
+    $sql = "SELECT code, has_electricity, created_at
+            FROM pitches";
 
-  <table border="1" cellpadding="6">
-    <thead>
-      <tr>
-        <th>Code</th>
-        <th>Electricity</th>
-        <th>Created</th>
-      </tr>
-    </thead>
-    <tbody>
-      <?php foreach ($pitches as $p): ?>
+    // If a filter is present, extend the query safely
+    $params = [];
+
+    if ($hasElectricity !== null) {
+        $sql .= " WHERE has_electricity = :has_electricity";
+        $params[':has_electricity'] = $hasElectricity;
+    }
+
+    $sql .= " ORDER BY code";
+
+    // Prepare + execute (even for SELECT)
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    $pitches = $stmt->fetchAll();
+
+    function e(string $s): string {
+        return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+    ?>
+    <!doctype html>
+    <html>
+    <head>
+    <meta charset="utf-8">
+    <title>Pitches</title>
+    </head>
+    <body>
+    <h1>Pitches</h1>
+
+    <table border="1" cellpadding="6">
+        <thead>
         <tr>
-          <td><?= e($p['code']) ?></td>
-          <td><?= $p['has_electricity'] ? 'Yes' : 'No' ?></td>
-          <td><?= e($p['created_at']) ?></td>
+            <th>Code</th>
+            <th>Electricity</th>
+            <th>Created</th>
         </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
-</body>
-</html>
+        </thead>
+        <tbody>
+        <?php foreach ($pitches as $p): ?>
+            <tr>
+            <td><?= e($p['code']) ?></td>
+            <td><?= $p['has_electricity'] ? 'Yes' : 'No' ?></td>
+            <td><?= e($p['created_at']) ?></td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    </body>
+    </html>
 ```
 The use of htmlspecialchars is extremely important to avoid script injection in any field. encoding prevents it from being executed by broswer. 
 
@@ -682,15 +701,25 @@ CSFR is when a user is logged into our site and another side tricks their browse
 ```
 
 #### Section 3. Reservation create handler (POST + validation + prepared insert)
+Goals: 
+- 1. Validate inputs
+- 2. Use RW connection
+- 3. Use a prepared statement
+- 4. Execute it safely
+- 5. Handle exceptions without leaking internals
+- 6. Redirect or show safe output
 ```php
-    // /public/reservation_create.php
-    <?php
+    // /public/reservation_create.php  
     require __DIR__ . '/../app/security.php';
     require __DIR__ . '/../app/db.php';
 
+    function (string $s): string {
+        return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
     function fail(string $msg, int $code = 400): void {
     http_response_code($code);
-    echo htmlspecialchars($msg, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    echo e($msg);
     exit;
     }
 
@@ -723,11 +752,32 @@ CSFR is when a user is logged into our site and another side tricks their browse
     $public_id = bin2hex(random_bytes(16)); //32 hex chars ~ 128 bits of randomness
     try {
         $pdo = db_rw(); 
+        // Prepared statement: prevents SQL injection because values are never concatenated into SQL
         $sql = "INSERT INTO reservations 
         (public_id, user_id, pitch_id, arrival_date, departure_date, notes)
         VALUES 
-        (:public_id, :user_id, :arrival_date, :departure_date, :notes )"
-    }
+        (:public_id, :user_id, :arrival_date, :departure_date, :notes )";
+
+        $stmt= $pdo->prepare($sql); //prepare() builds a compiled query template with placeholders
+
+        //execute with parameter array (cleaner than binParam/bindValue for most cases)
+        $stmt->execute([ //execute([...]) binds values safely and runs the query
+            ':public_id'      => $public_id,
+        ':user_id'        => $user_id,
+        ':pitch_id'       => $pitch_id,
+        ':arrival_date'   => $arrival,
+        ':departure_date' => $departure,
+        ':notes'          => $notes,
+        ]);
+        // Success response (simple). In a more sophisticated app we could redirect to a success page
+        http_response_code(201);
+        echo "Reservation created. Public ID: " . e($public_id);
+
+    } catch (PDOException $ex) { // catch(PDOException) prevents raw DB errors from reaching the user
+          // IMPORTANT: don't leak DB details to the user.
+    // Log server-side (file/syslog) in real app; for now we show a generic message.
+    fail("Database error while creating reservation.", 500);
+    }    
 ```
 #### Section 4. Sanity checks. Quick "attack simulation"
 
