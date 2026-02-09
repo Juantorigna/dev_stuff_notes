@@ -334,12 +334,12 @@ Run this at mysql>
 
 The expected query telling you everything has worked fine is "**Query OK...**"
 
-**What do these commands mean?
+**What do these commands mean?**
 
 - **a)** UNSIGNED. A numeric column lie **INT** normally can store negative and positive numbers. By using UNSIGNED we force positive only numbers in our DB. 
 - **b)** VARCHAR(n). It stands for "a string up to n characters long.
-- **c)** UNIQUE. It's a constraint that enforces values in a column (or grups of columns) to be different. By having UNIQUE KEY uq_users_email (email) we avoid having rows with a mail already present in another row. **uq_users_email** is just the name we adopt for the unique constraint.
-- **d)** ENGINE=InnoDB. My SQL can store tables using different storage engines. What's a store engine? A store engine is the internal system MySQL uses to store and manage the table on disk. InnoDB is the current standard. InnoDB provides a series of features that can be helpful, such as: foreign keys (relationships like **reservations.user_id -> users.id**), row-level locking (better concurrency when multiple users book at one for example), transactions (all-or-nothing changes) ensure that in a multi-step process all steps are completed in order to grant row creation. If even one step is jumped, then all are discarted. Example: both a reservation procedure AND  the payment must be completed in order to generate the row. 
+- **c)** UNIQUE. It's a constraint that enforces values in a column (or groups of columns) to be different. By having UNIQUE KEY uq_users_email (email) we avoid having rows with a mail already present in another row. **uq_users_email** is just the name we adopt for the unique constraint.
+- **d)** ENGINE=InnoDB. My SQL can store tables using different storage engines. What's a store engine? A store engine is the internal system MySQL uses to store and manage the table on disk. InnoDB is the current standard. InnoDB provides a series of features that can be helpful, such as: foreign keys (relationships like **reservations.user_id -> users.id**), row-level locking (better concurrency when multiple users book at one for example), transactions (all-or-nothing changes) ensure that in a multi-step process all steps are completed in order to grant row creation. If even one step is jumped, then all are discarded. Example: both a reservation procedure AND  the payment must be completed in order to generate the row. 
 - **e)** Row-level locking. It allows multiple users to operate concurrently, while locking only the rows involved in each transaction. 
 - **f)** Better crash recovery than older engines. 
 
@@ -392,7 +392,7 @@ We'll now add a table for reservations:
 
 ### Section 3. Security note.
 #### Why should IDs not be guessable?
-Let's start by definying a problem and then finding the solution to it. If our API exposes: 
+Let's start by defining a problem and then finding the solution to it. If our API exposes: 
 
 ```sql
     /reservations/123
@@ -412,10 +412,10 @@ Good public-id format options are:
 !! Remember !! Non-guessable ids help, but are never a substitute for authorization. 
 
 ##### Section 3.1. Security note. Avoiding over-exposed internal structure. 
-As always, a golden rule od coding is building concreate healthy habits that last. Some to keep in our toolbox are: 
+As always, a golden rule of coding is building concreate healthy habits that last. Some to keep in our toolbox are: 
 
 - **a)** Don't return raw SQL errors to users, log them on server-side instead
-- **b)** Don't expose intrnal column names blindly in APIs (SELECT * --> avoid for APIs. A good protocol is to manually select the columns you actually need, SELECT public_id, email, created_at FROM users)
+- **b)** Don't expose internal column names blindly in APIs (SELECT * --> avoid for APIs. A good protocol is to manually select the columns you actually need, SELECT public_id, email, created_at FROM users)
 - **c)** Minimize what your endpoints return (principle of least data)
 
 ## Part 3. DB-backend mini app
@@ -457,7 +457,7 @@ In this way we won't repeat DSN/options logic, and our app code can just ask for
 #### Section 3.2. The connection factory
 **app/db.php** is the file that exposes functions that produce PDO connections. These are:
 - 1. pdo_common($cfg, $user, $pass)
-- 2. db_ro() and db:rw()
+- 2. db_ro() and db_rw()
 
 **pdo_common($cfg, $user, $pass**) knows how to build a PDO connection given where to connect (done by $cfg that contains host, name, and charset), and who is connecting ($user, $pass). <br>
 **db_ro()** and **db_rw()** are small wrappers that have the following goals: 
@@ -473,7 +473,7 @@ Reading path:
 Writing path: 
     OUR code (INSERT/UPDATE/DELETE) → db_rw() → load config → pdo_common() → new PDO(...) → PDO handle
 
-Thus, db_ro()/db_rw() are **puclic** entrypoints and **pdo_common** is the internal (not private) helper function, not intended to be called directly by application code.
+Thus, db_ro()/db_rw() are **public** entrypoints and **pdo_common** is the internal (not private) helper function, not intended to be called directly by application code.
 
 #### Section 3.4. The shared builder
 The shared builder aforementioned is "**pdo_common(...)**" and it is used as a single source to create PDO connections: 
@@ -514,7 +514,7 @@ To set options so the connection behaves predictably:
 rather than numeric indexes like **$row[0]**.
 - 3. **PDO::ATTR_EMULATE_PREPARES => false** is used to express the preference of real prepared statements instead of emulated ones. 
 
-#### Section 3.8. PDO ad return hint
+#### Section 3.8. PDO as return hint
 By: 
 ```php
     function db_ro(): PDO
@@ -553,8 +553,8 @@ return [
         );
 
         $pdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, //trhow exceptions
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, //associative arryas^
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, //throw exceptions
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, //associative arrys^
             PDO::ATTR_EMULATE_PREPARES => false, //real prepared statements
         ]);
         return $pdo;
@@ -642,6 +642,7 @@ The threats we'll consider building defenses against are:
     </html>
 ```
 The use of htmlspecialchars is extremely important to avoid script injection in any field. encoding prevents it from being executed by broswer. 
+Prepared statements are mandatory whenever user input is involved.
 
 ### Part 4.1. Protecting writes (forms, inserts, validation, and CSRF)
 Validation must always follow a double layer structure: 
@@ -653,7 +654,7 @@ CSRF is when a user is logged into our site and another side tricks their browse
 
 ```php
     // app/security.php
-    //I will not annotate anything about CFRS since I'll dedicate a file solely to it
+    //I will not annotate anything about CSRF since I'll dedicate a file solely to it
     // (CSRF is important but we'll later dedicate a full file to it.)
 
     session_start();
