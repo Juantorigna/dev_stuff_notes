@@ -606,13 +606,13 @@ The threats we'll consider building defenses against are:
 ```
 The use of htmlspecialchars is extremely important to avoid script injection in any field. encoding prevents it from being executed by broswer. 
 
-### Part 4.1. Protecting writes (forms, inserts, validation, and CSFR)
+### Part 4.1. Protecting writes (forms, inserts, validation, and CSRF)
 Validation must always follow a double layer structure: 
 - 1. Client-side validation to help the UX via a faster feedback
 - 2. Server-Side validation, where the real protection resides
 
 #### Section 1. Server-side validation, CSRF
-CSFR is when a user is logged into our site and another side tricks their browser into sending a request by piggy-backing the user's session. At the moment our small project doesn't have a login session yet. Still, it is usefull to see it. After all, repetita iuvant.
+CSRF is when a user is logged into our site and another side tricks their browser into sending a request by piggy-backing the user's session. At the moment our small project doesn't have a login session yet. Still, it is usefull to see it. After all, repetita iuvant.
 
 ```php
     // app/security.php
@@ -637,67 +637,77 @@ CSFR is when a user is logged into our site and another side tricks their browse
 
 #### Section 2. Reservation from (GET) page
 ```php
-    // /public/reservation_new.php
-    <?php
-    require __DIR__ . '/../app/security.php';
-    require __DIR__ . '/../app/db.php';
+<?php
+// /public/reservation_new.php
+require __DIR__ . '/../app/security.php';
+require __DIR__ . '/../app/db.php';
 
-    $pdo = db_ro();
-    $pitches = $pdo->query("SELECT id, code FROM pitches ORDER BY code")->fetchAll();
+$pdo = db_ro();
 
-    function e(string $s): string {
+// Even without user input, we still use prepare() for consistency
+$sql = "SELECT id, code
+        FROM pitches
+        ORDER BY code";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute();
+
+$pitches = $stmt->fetchAll();
+
+function e(string $s): string {
     return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-    ?>
-    <!doctype html>
-    <html>
-    <head>
-    <meta charset="utf-8">
-    <title>New Reservation</title>
-    </head>
-    <body>
-    <h1>Create Reservation</h1>
+}
+?>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>New Reservation</title>
+</head>
+<body>
+<h1>Create Reservation</h1>
 
-    <form method="post" action="reservation_create.php" id="resForm">
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+<form method="post" action="reservation_create.php" id="resForm">
+    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
-        <label>Pitch:</label>
-        <select name="pitch_id" required>
+    <label>Pitch:</label>
+    <select name="pitch_id" required>
         <?php foreach ($pitches as $p): ?>
-            <option value="<?= (int)$p['id'] ?>"><?= e($p['code']) ?></option>
+            <option value="<?= (int)$p['id'] ?>">
+                <?= e($p['code']) ?>
+            </option>
         <?php endforeach; ?>
-        </select>
-        <br><br>
+    </select>
+    <br><br>
 
-        <label>Arrival date:</label>
-        <input type="date" name="arrival_date" required>
-        <br><br>
+    <label>Arrival date:</label>
+    <input type="date" name="arrival_date" required>
+    <br><br>
 
-        <label>Departure date:</label>
-        <input type="date" name="departure_date" required>
-        <br><br>
+    <label>Departure date:</label>
+    <input type="date" name="departure_date" required>
+    <br><br>
 
-        <label>Notes (optional):</label><br>
-        <textarea name="notes" maxlength="500"></textarea>
-        <br><br>
+    <label>Notes (optional):</label><br>
+    <textarea name="notes" maxlength="500"></textarea>
+    <br><br>
 
-        <button type="submit">Create</button>
-    </form>
+    <button type="submit">Create</button>
+</form>
 
-    <script>
-    // Client-side convenience only (not security)
-    document.getElementById('resForm').addEventListener('submit', (e) => {
-        const a = document.querySelector('[name="arrival_date"]').value;
-        const d = document.querySelector('[name="departure_date"]').value;
-        if (a && d && d <= a) {
+<script>
+// Client-side convenience only (not security)
+document.getElementById('resForm').addEventListener('submit', (e) => {
+    const a = document.querySelector('[name="arrival_date"]').value;
+    const d = document.querySelector('[name="departure_date"]').value;
+    if (a && d && d <= a) {
         e.preventDefault();
         alert("Departure must be after arrival.");
-        }
-    });
-    </script>
-    </body>
-    </html>
-
+    }
+});
+</script>
+</body>
+</html>
 ```
 
 #### Section 3. Reservation create handler (POST + validation + prepared insert)
@@ -713,9 +723,10 @@ Goals:
     require __DIR__ . '/../app/security.php';
     require __DIR__ . '/../app/db.php';
 
-    function (string $s): string {
-        return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    function e(string $s): string {
+    return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
+
 
     function fail(string $msg, int $code = 400): void {
     http_response_code($code);
@@ -756,7 +767,7 @@ Goals:
         $sql = "INSERT INTO reservations 
         (public_id, user_id, pitch_id, arrival_date, departure_date, notes)
         VALUES 
-        (:public_id, :user_id, :arrival_date, :departure_date, :notes )";
+        (:public_id, :user_id, :pitch_id, :arrival_date, :departure_date, :notes)";
 
         $stmt= $pdo->prepare($sql); //prepare() builds a compiled query template with placeholders
 
