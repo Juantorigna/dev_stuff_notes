@@ -182,9 +182,9 @@ GRANT 'role_migrator' TO 'camp_app_migrator'@'localhost';
 Then, set default role, so it is active automatically, by: 
 
 ```sql
-    SET DEFAULT ROLE 'role_app_ro' FOR 'camp_app_ro'@'localhost';
-    SET DEFAULT ROLE 'role_app_rw' FOR 'camp_app_rw'@'localhost'; 
-    SET DEFAULT ROLE 'role_migrator' FOR 'camp_app_migrator'@'localhost';
+    SET DEFAULT ROLE role_app_ro FOR 'camp_app_ro'@'localhost';
+    SET DEFAULT ROLE role_app_rw FOR 'camp_app_rw'@'localhost'; 
+    SET DEFAULT ROLE role_migrator FOR 'camp_app_migrator'@'localhost';
 ```
 If we don't set a default role, the user may log in and have zero effective privilegies until the role is enabled for the session. <br>
 Without a default role, a user can authenticate successfully but have zero effective privileges.
@@ -490,11 +490,11 @@ And it returns a **configured PDO connection handle**. The whole point of this i
 - 1. Build the DSN (Data Source Name) to tell the PDO which driver to use (mysql) and which host, database, charset to connect with 
 
 ```php
-    $dsn = sprintf(
-    "mysql:host=%s;dbname=%s;charset=%s",
-    $cfg['host'],
-    $cfg['name'],
-    $cfg['charset']
+$dsn = sprintf(
+"mysql:host=%s;dbname=%s;charset=%s",
+$cfg['host'],
+$cfg['name'],
+$cfg['charset']
 );
 ```
 We use sprintf() to plug config values into the DSN template. 
