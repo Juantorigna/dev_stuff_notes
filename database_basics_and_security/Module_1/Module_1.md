@@ -10,7 +10,7 @@ Some important context first. It is important to always have a threat-driven min
 
 Open a terminal in your DB dir, and run: 
 ```sql
-    mysql -u root -p
+mysql -u root -p
 ```
 
 -u root --> username
@@ -38,24 +38,24 @@ CLI connections reduce accidental exposure (no saved passwords, no GUI cache, no
 
 By running the following inside MySQL: 
 ```sql
-    SELECT user,
-    host FROM mysql.user
+SELECT user,
+host FROM mysql.user
 ```
 We'll see outputs like: 
 ```sql
-    root@localhost
-    mysql.session@localhost
+root@localhost
+mysql.session@localhost
 ```
 This query shows all defined authentication identities from an administrative perspective.<br>
 
 **Why do users have a host?** <br>
 In MySQL
 ```sql
-    'user'@'host'
+'user'@'host'
 ```
 is the real identiy, not the username. This means that
 ```sql
-    "root@localhost" != root@% /* they are not the same account*/
+"root@localhost" != root@% /* they are not the same account*/
 ```
 
 Even if the name is the same, the scope is different. This is very important for security. Security design must assume failure, not perfect code. <br>
@@ -121,9 +121,9 @@ In short, roles separate “what is allowed” from “who is allowed”.
 #### Section 8.1 Creating roles.
 We start creating three main roles, each aligned with a specific responsibility: 
 ```sql
-    CREATE ROLE 'role_app_ro';
-    CREATE ROLE 'role_app_rw';
-    CREATE ROLE 'role_migrator';
+CREATE ROLE 'role_app_ro';
+CREATE ROLE 'role_app_rw';
+CREATE ROLE 'role_migrator';
 ```
 At this stage, the roles exist but have no privileges yet. 
 
@@ -131,27 +131,27 @@ At this stage, the roles exist but have no privileges yet.
 Let's assume our database (schema) is called **camping_db**. <br>
 *Read-only role*
 ```sql
-    GRANT SELECT
-    ON camping_db.*
-    TO 'role_app_ro';
+GRANT SELECT
+ON camping_db.*
+TO 'role_app_ro';
 ```
 In this way, this role can read any table in camping_db, but cannot insert, update, delete nor alter anything. <br>
 
 *Read-write role* (data only)<br>
 This role is intended for application endpoints that must create or modify data, but must not change the schema, thus the database structure.
 ```sql
-    GRANT SELECT, INSERT, UPDATE, DELETE
-    ON camping_db.*
-    TO 'role_app_rw';
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON camping_db.*
+TO 'role_app_rw';
 ```
 By this snippet, this role can now modify and read rows. However, it cannot create, alter, or delete tables. Furthermore, it cannot modify indexes or constraints.
 
 *Migration role* (schema evolution)
 This role is suited for schema/database structure alternations, such as creating/deleting tables, adding indexes, or evolving constraints. 
 ```sql
-    GRANT CREATE, ALTER, DROP, INDEX, REFERENCES
-    ON camping_db.*
-    TO 'role_migrator';
+GRANT CREATE, ALTER, DROP, INDEX, REFERENCES
+ON camping_db.*
+TO 'role_migrator';
 ```
 This role should **never** be used by the live application.
 
@@ -164,9 +164,9 @@ Roles do nothing by themselves. They become effective only after being granted t
 By "host restriction" we mean defining where login is allowed from. <br>
 For local-dev, we: 
 ```sql
-    CREATE USER 'camp_app_ro'@'localhost' IDENTIFIED BY 'use-a-strong-password'; 
-    CREATE USER 'camp_app_rw'@'localhost' IDENTIFIED BY 'use-a-strong-password'; 
-    CREATE USER 'camp_app_migrator'@'localhost' IDENTIFIED BY 'use-a-strong-password'; 
+CREATE USER 'camp_app_ro'@'localhost' IDENTIFIED BY 'use-a-strong-password'; 
+CREATE USER 'camp_app_rw'@'localhost' IDENTIFIED BY 'use-a-strong-password'; 
+CREATE USER 'camp_app_migrator'@'localhost' IDENTIFIED BY 'use-a-strong-password'; 
 ```
 With "*use-a-strong-password*" we mean creating a brand-new password for the user, not your MySQL account password. 
 
@@ -181,9 +181,9 @@ GRANT 'role_migrator' TO 'camp_app_migrator'@'localhost';
 Then, set default role, so it is active automatically, by: 
 
 ```sql
-    SET DEFAULT ROLE role_app_ro TO 'camp_app_ro'@'localhost';
-    SET DEFAULT ROLE role_app_rw TO 'camp_app_rw'@'localhost'; 
-    SET DEFAULT ROLE role_migrator TO 'camp_app_migrator'@'localhost';
+SET DEFAULT ROLE role_app_ro TO 'camp_app_ro'@'localhost';
+SET DEFAULT ROLE role_app_rw TO 'camp_app_rw'@'localhost'; 
+SET DEFAULT ROLE role_migrator TO 'camp_app_migrator'@'localhost';
 ```
 If we don't set a default role, the user may log in and have zero effective privilegies until the role is enabled for the session. <br>
 Without a default role, a user can authenticate successfully but have zero effective privileges.
@@ -192,26 +192,26 @@ Without a default role, a user can authenticate successfully but have zero effec
 
 - 1. Audit grants:
 ```sql
-    SHOW GRANTS FOR 'camp_app_ro'@'localhost';
-    SHOW GRANTS FOR 'camp_app_rw'@'localhost'; 
-    SHOW GRANTS FOR 'camp_app_migrator'@'localhost';
+SHOW GRANTS FOR 'camp_app_ro'@'localhost';
+SHOW GRANTS FOR 'camp_app_rw'@'localhost'; 
+SHOW GRANTS FOR 'camp_app_migrator'@'localhost';
 ```
 - 2. Test the rules.
 
 RO should fail on write: 
 ```sql
-    INSERT INTO pitches(code, has_electricity) VALUES ('A1', true);
-    -- Expected: permission denied
+INSERT INTO pitches(code, has_electricity) VALUES ('A1', true);
+-- Expected: permission denied
 ```
 RW should fail on schema changes: 
 ```sql
-    CREATE TABLE test_table(id INT);
-    -- Expected: permission denied
+CREATE TABLE test_table(id INT);
+-- Expected: permission denied
 ```
 ### Section 12. Password rotation + revoking access
 Rotate password: 
 ```sql
-    ALTER USER 'camp_app_rw'@'localhost' IDENTIFIED BY 'new-strong-password';
+ALTER USER 'camp_app_rw'@'localhost' IDENTIFIED BY 'new-strong-password';
 ```
 
 Revoke a role: 
@@ -230,7 +230,7 @@ Concept hook: Rotation is for suspicion. Revocation is for compromise.
 ### Section 13. Checking who you are and exiting MySQL
 When working with multiple users (root, RO, RW, migrator), it is important to verify which MySQL account you are currently authenticated as: 
 ```sql
-    SELECT USER(); /* USER() shows the account name and host you used to authenticate.*/
+SELECT USER(); /* USER() shows the account name and host you used to authenticate.*/
 ```
 or: 
 ```sql
@@ -238,7 +238,7 @@ SELECT CURRENT_USER(); /* CURRENT_USER() shows the MySQL account actually used f
 ```
 To leave the mYSQL client and return to our terminal we run: 
 ```sql
-    exit
+exit
 ```
 This habit is especially useful when switching between root, app RO, app RW, and migrator users during setup and testing.
 ### Section 14. Where credentials should (and should not) live
@@ -278,38 +278,38 @@ During this section we'll learn while building a small database for a camping/re
 
 Open your terminal and access to MySQL using the commands learned from Part 1: 
 ```sql
-    mysql -u root -p
+mysql -u root -p
 ```
 
 You'll be asked for your password, and if it is correct you'll have access to your MySQL account. 
 
 Once connected, run the following: 
 ```sql
-    SELECT VERSION(); /*it tells you the MySQL you are running*/
-    SHOW DATABASES; /*it tells you the databases you already have created */
+SELECT VERSION(); /*it tells you the MySQL you are running*/
+SHOW DATABASES; /*it tells you the databases you already have created */
 ```
 If you already have a DB, you can run the following to start using it: 
 ```sql
-    USE databasename /* where "databasename is you DB name*/
+USE databasename /* where "databasename is you DB name*/
 ```
 ### Section 1. Create a database (schema)
 
 If the DB doesn't exist yet, and you are building it form scratch, then run: 
 ```sql
-    CREATE DATABASE the_name_you_want
-        DEFAULT CHARACTER SET utf8mb4 /*utf8mb4 is the modern "full UTF-8" for MySQL*/
-        DEFAULT COLLATE utf8mb4_0900_ai_ci; /*this breaks down in multiple parts. **utf8mb4** is described above; **0900** stands for UNicode rules from teh UCA; **ai** accent-insensitive; **ci** stands for case insensitive*/
+CREATE DATABASE the_name_you_want
+    DEFAULT CHARACTER SET utf8mb4 /*utf8mb4 is the modern "full UTF-8" for MySQL*/
+    DEFAULT COLLATE utf8mb4_0900_ai_ci; /*this breaks down in multiple parts. **utf8mb4** is described above; **0900** stands for UNicode rules from teh UCA; **ai** accent-insensitive; **ci** stands for case insensitive*/
 ```
 
 The expected query is "**Query OK, 1 row affected**".
     
 An important command to check which DB you're using is: 
 ```sql
-    SELECT DATABASE(); 
+SELECT DATABASE(); 
 ```
 It is useful cause if we ever forget to run
 ```sql
-    USE databasename; 
+USE databasename; 
 ```
 We might end up creating tables in the wrong database. 
 
@@ -319,16 +319,16 @@ Tables are the data structure of a database.
 #### Create **users** table 
 Run this at mysql>
 ```sql
-   CREATE TABLE users (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, /*big stands for "bigger range. We'll use it as Primary Key (PK)*/
-    public_id CHAR(26) NOT NULL,
-    email VARCHAR(254) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_users_public_id (public_id),
-    UNIQUE KEY uq_users_email (email)
-    ) ENGINE=InnoDB;
+CREATE TABLE users (
+id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, /*big stands for "bigger range. We'll use it as Primary Key (PK)*/
+public_id CHAR(26) NOT NULL,
+email VARCHAR(254) NOT NULL,
+password_hash VARCHAR(255) NOT NULL,
+created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (id),
+UNIQUE KEY uq_users_public_id (public_id),
+UNIQUE KEY uq_users_email (email)
+) ENGINE=InnoDB;
 ```
 
 The expected query telling you everything has worked fine is "**Query OK...**"
@@ -350,43 +350,43 @@ If everything works out fine, we should see columns including headers like id, p
 
 Since in our example we are building  DB for a camping, we'll create a table dedicated to each pitch: 
 ```sql
-    CREATE TABLE pitches (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    code VARCHAR(20) NOT NULL,
-    has_electricity BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_pitches_code (code)
-    ) ENGINE=InnoDB;
+CREATE TABLE pitches (
+id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+code VARCHAR(20) NOT NULL,
+has_electricity BOOLEAN NOT NULL DEFAULT FALSE,
+created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (id),
+UNIQUE KEY uq_pitches_code (code)
+) ENGINE=InnoDB;
 ```
 
 We'll now add a table for reservations: 
 
 ```sql
-    CREATE TABLE reservations (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, 
-        public_id CHAR(26) NOT NULL, 
-        user_id BIGINT UNSIGNED NOT NULL, 
-        pitch_id INT UNSIGNED NOT NULL, 
+CREATE TABLE reservations (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, 
+    public_id CHAR(26) NOT NULL, 
+    user_id BIGINT UNSIGNED NOT NULL, 
+    pitch_id INT UNSIGNED NOT NULL, 
 
-        arrival_date DATE NOT NULL,
-        departure_date DATE NOT NULL, 
+    arrival_date DATE NOT NULL,
+    departure_date DATE NOT NULL, 
 
-        notes TEXT NULL, 
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+    notes TEXT NULL, 
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
 
-        PRIMARY KEY (id), 
-        UNIQUE KEY uq_res_public_id (public_id), 
-        KEY idx_res_user_date (user_id, arrival_date), 
-        KEY idx_res_pitch_date (pitch_id, arrival_date), 
+    PRIMARY KEY (id), 
+    UNIQUE KEY uq_res_public_id (public_id), 
+    KEY idx_res_user_date (user_id, arrival_date), 
+    KEY idx_res_pitch_date (pitch_id, arrival_date), 
 
-        CONSTRAINT fk_res_user
-            FOREIGN KEY (user_id) REFERENCES users(id)
-            ON DELETE RESTRICT ON UPDATE CASCADE, 
+    CONSTRAINT fk_res_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE RESTRICT ON UPDATE CASCADE, 
 
-        CONSTRAINT chk_dates
-            CHECK (departure_date > arrival_date) /*CHECK constraints are enforced in MySQL 8.0.16 and later*/
-        ) ENGINE=InnoDB;
+    CONSTRAINT chk_dates
+        CHECK (departure_date > arrival_date) /*CHECK constraints are enforced in MySQL 8.0.16 and later*/
+    ) ENGINE=InnoDB;
 ```
 
 ### Section 3. Security note.
@@ -394,8 +394,8 @@ We'll now add a table for reservations:
 Let's start by defining a problem and then finding the solution to it. If our API exposes: 
 
 ```sql
-    /reservations/123
-    /reservations/124
+/reservations/123
+/reservations/124
 ```
 
 Attackers can try IDOR-style guessing (InsecureDirect Object Reference): "What if I request someone else's reservation?" <br>
@@ -467,17 +467,17 @@ In this way we won't repeat DSN/options logic, and our app code can just ask for
 
 #### Section 3.3. Mental picture 
 Reading path: 
-    Our code (SELECT) → db_ro() → load config → pdo_common() → new PDO(...) → PDO handle
+Our code (SELECT) → db_ro() → load config → pdo_common() → new PDO(...) → PDO handle
 
 Writing path: 
-    OUR code (INSERT/UPDATE/DELETE) → db_rw() → load config → pdo_common() → new PDO(...) → PDO handle
+OUR code (INSERT/UPDATE/DELETE) → db_rw() → load config → pdo_common() → new PDO(...) → PDO handle
 
 Thus, db_ro()/db_rw() are **public** entrypoints and **pdo_common** is the internal (not private) helper function, not intended to be called directly by application code.
 
 #### Section 3.4. The shared builder
 The shared builder aforementioned is "**pdo_common(...)**" and it is used as a single source to create PDO connections: 
 ```php
-    pdo_common(array $cfg, string $user, string $pass): PDO {}
+pdo_common(array $cfg, string $user, string $pass): PDO {}
 ```
 It takes: 
 - **a)** **$cfg** where we stored host, name, and charset
@@ -490,10 +490,10 @@ And it returns a **configured PDO connection handle**. The whole point of this i
 
 ```php
 $dsn = sprintf(
-"mysql:host=%s;dbname=%s;charset=%s",
-$cfg['host'],
-$cfg['name'],
-$cfg['charset']
+    "mysql:host=%s;dbname=%s;charset=%s",
+    $cfg['host'],
+    $cfg['name'],
+    $cfg['charset']
 );
 ```
 We use sprintf() to plug config values into the DSN template. 
@@ -508,7 +508,7 @@ To set options so the connection behaves predictably:
 - 1. PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION (I want errors to throw exceptions instead od failing silently)
 - 2. PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC (I want rows as associate arrays), so I can: 
 ```php
-    $row['email']
+$row['email']
 ```
 rather than numeric indexes like **$row[0]**.
 - 3. **PDO::ATTR_EMULATE_PREPARES => false** is used to express the preference of real prepared statements instead of emulated ones. 
@@ -516,7 +516,7 @@ rather than numeric indexes like **$row[0]**.
 #### Section 3.8. PDO as return hint
 By: 
 ```php
-    function db_ro(): PDO
+function db_ro(): PDO
 ```
 We use **: PDO** as a return type hint, meaning "this function returns a PDO object".
 
@@ -541,35 +541,35 @@ return [
 ```
 
 ```php
-    //app/db.php (PDO)
+//app/db.php (PDO)
 
-    function pdo_common(array $cfg, string $user, string $pass): PDO {
-        $dsn = sprintf(
-            "mysql:host=%s;dbname=%s;charset=%s",
-            $cfg['host'],
-            $cfg['name'],
-            $cfg['charset']
-        );
+function pdo_common(array $cfg, string $user, string $pass): PDO {
+    $dsn = sprintf(
+        "mysql:host=%s;dbname=%s;charset=%s",
+        $cfg['host'],
+        $cfg['name'],
+        $cfg['charset']
+    );
 
-        $pdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, //throw exceptions
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, //associative arrys^
-            PDO::ATTR_EMULATE_PREPARES => false, //real prepared statements
-        ]);
-        return $pdo;
-    }
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, //throw exceptions
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, //associative arrys^
+        PDO::ATTR_EMULATE_PREPARES => false, //real prepared statements
+    ]);
+    return $pdo;
+}
 
-    function db_ro(): PDO {
-        $config = require __DIR__ . '/config.php';
-        $db = $config['db']; 
-        return pdo_common($db, $db['ro_user'], $db['ro_pass']);
-    }
+function db_ro(): PDO {
+    $config = require __DIR__ . '/config.php';
+    $db = $config['db']; 
+    return pdo_common($db, $db['ro_user'], $db['ro_pass']);
+}
 
-    function db_rw(): PDO {
-        $config = require __DIR__ . '/config.php';
-        $db = $config['db'];
-        return pdo_common($db, $db['rw_user'], $db['rw_pass']);
-    }
+function db_rw(): PDO {
+    $config = require __DIR__ . '/config.php';
+    $db = $config['db'];
+    return pdo_common($db, $db['rw_user'], $db['rw_pass']);
+}
 ```
 ## Part 4. Protecting reads and displaying the DB data safely
 The threats we'll consider building defenses against are: 
@@ -578,67 +578,67 @@ The threats we'll consider building defenses against are:
 
 ```php
 <?php
-    // /public/pitches.php
-    require __DIR__ . '/../app/db.php';
+// /public/pitches.php
+require __DIR__ . '/../app/db.php';
 
-    $pdo = db_ro();
+$pdo = db_ro();
 
-    // Optional filter from query string (user-controlled input!)
-    $hasElectricity = filter_input(INPUT_GET, 'has_electricity', FILTER_VALIDATE_INT);
+// Optional filter from query string (user-controlled input!)
+$hasElectricity = filter_input(INPUT_GET, 'has_electricity', FILTER_VALIDATE_INT);
 
-    // Base query (explicit column list)
-    $sql = "SELECT code, has_electricity, created_at
-            FROM pitches";
+// Base query (explicit column list)
+$sql = "SELECT code, has_electricity, created_at
+        FROM pitches";
 
-    // If a filter is present, extend the query safely
-    $params = [];
+// If a filter is present, extend the query safely
+$params = [];
 
-    if ($hasElectricity !== null) {
-        $sql .= " WHERE has_electricity = :has_electricity";
-        $params[':has_electricity'] = $hasElectricity;
-    }
+if ($hasElectricity !== null) {
+    $sql .= " WHERE has_electricity = :has_electricity";
+    $params[':has_electricity'] = $hasElectricity;
+}
 
-    $sql .= " ORDER BY code";
+$sql .= " ORDER BY code";
 
-    // Prepare + execute (even for SELECT)
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+// Prepare + execute (even for SELECT)
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 
-    $pitches = $stmt->fetchAll();
+$pitches = $stmt->fetchAll();
 
-    function e(string $s): string {
-        return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-    ?>
-    <!doctype html>
-    <html>
-    <head>
-    <meta charset="utf-8">
-    <title>Pitches</title>
-    </head>
-    <body>
-    <h1>Pitches</h1>
+function e(string $s): string {
+    return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+?>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Pitches</title>
+</head>
+<body>
+<h1>Pitches</h1>
 
-    <table border="1" cellpadding="6">
-        <thead>
+<table border="1" cellpadding="6">
+    <thead>
+    <tr>
+        <th>Code</th>
+        <th>Electricity</th>
+        <th>Created</th>
+    </tr>
+    </thead>
+    <tbody>
+    <?php foreach ($pitches as $p): ?>
         <tr>
-            <th>Code</th>
-            <th>Electricity</th>
-            <th>Created</th>
+        <td><?= e($p['code']) ?></td>
+        <td><?= $p['has_electricity'] ? 'Yes' : 'No' ?></td>
+        <td><?= e($p['created_at']) ?></td>
         </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($pitches as $p): ?>
-            <tr>
-            <td><?= e($p['code']) ?></td>
-            <td><?= $p['has_electricity'] ? 'Yes' : 'No' ?></td>
-            <td><?= e($p['created_at']) ?></td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
-    </body>
-    </html>
+    <?php endforeach; ?>
+    </tbody>
+</table>
+</body>
+</html>
 ```
 The use of htmlspecialchars is extremely important to avoid script injection in any field. encoding prevents it from being executed by broswer. 
 Prepared statements are mandatory whenever user input is involved.
@@ -656,20 +656,20 @@ CSRF is when a user is logged into our site and another side tricks their browse
     //I will not annotate anything about CSRF since I'll dedicate a file solely to it
     // (CSRF is important but we'll later dedicate a full file to it.)
 
-    session_start();
+session_start();
 
-    function csrf_token(): string {
-        if (empty($_SESSION['csrf_token'])) {
-            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        }
-        return $_SESSION['csrf_token'];
+function csrf_token(): string {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
+    return $_SESSION['csrf_token'];
+}
 
-    function csrf_validate(?string $token): bool {
-        return is_string($token)
-            && isset($_SESSION['csrf_token'])
-            && hash_equals($_SESSION['csrf_token'], $token);
-    }
+function csrf_validate(?string $token): bool {
+    return is_string($token)
+        && isset($_SESSION['csrf_token'])
+        && hash_equals($_SESSION['csrf_token'], $token);
+}
 ```
 
 #### Section 2. Reservation from (GET) page
@@ -756,90 +756,90 @@ Goals:
 - 5. Handle exceptions without leaking internals
 - 6. Redirect or show safe output
 ```php
-    // /public/reservation_create.php  
-    require __DIR__ . '/../app/security.php';
-    require __DIR__ . '/../app/db.php';
+// /public/reservation_create.php  
+require __DIR__ . '/../app/security.php';
+require __DIR__ . '/../app/db.php';
 
-    function e(string $s): string {
-    return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
+function e(string $s): string {
+return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
 
 
-    function fail(string $msg, int $code = 400): void {
-    http_response_code($code);
-    echo e($msg);
-    exit;
-    }
+function fail(string $msg, int $code = 400): void {
+http_response_code($code);
+echo e($msg);
+exit;
+}
 
-    if (!csrf_validate($_POST['csrf_token'] ?? null)) {
-    fail("Invalid CSRF token.", 403);
-    }
+if (!csrf_validate($_POST['csrf_token'] ?? null)) {
+fail("Invalid CSRF token.", 403);
+}
 
-    //basic server-side validation
-    $pitch_id = filter_input(INPUT_POST, 'pitch_id', FILTER_VALIDATE_INT); 
-    $arrival = $_POST['arrival_date'] ?? '';
-    $departure = $_POST['departure_date'] ?? '';
-    $notes = $_POST['notes'] ?? null;
+//basic server-side validation
+$pitch_id = filter_input(INPUT_POST, 'pitch_id', FILTER_VALIDATE_INT); 
+$arrival = $_POST['arrival_date'] ?? '';
+$departure = $_POST['departure_date'] ?? '';
+$notes = $_POST['notes'] ?? null;
 
-    if (!$pitch_id) fail("Invalid pitch.", 422);
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $arrival)) fail("Invalid arrival date.", 422);
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $departure)) fail("Invalid departure date.", 422);
-    if ($departure <= $arrival) fail("Departure must be after arrival.", 422);
+if (!$pitch_id) fail("Invalid pitch.", 422);
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $arrival)) fail("Invalid arrival date.", 422);
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $departure)) fail("Invalid departure date.", 422);
+if ($departure <= $arrival) fail("Departure must be after arrival.", 422);
 
-    if ($notes !== null) {
-        $notes = trim($notes);
-        if ($notes === '') $notes = null; 
-        if (strlen($notes) > 500) fail("Notes too long.", 422);
-    }
+if ($notes !== null) {
+    $notes = trim($notes);
+    if ($notes === '') $notes = null; 
+    if (strlen($notes) > 500) fail("Notes too long.", 422);
+}
 
-    //In a real app, you'd get user_id from the logged-in user session.
-    // For now, we’ll assume user_id = 1 exists.
-    $user_id = 1;
+//In a real app, you'd get user_id from the logged-in user session.
+// For now, we’ll assume user_id = 1 exists.
+$user_id = 1;
 
-    //you should generste a public_id in the app (ULID/UUID). Placeholder here:
-    $public_id = bin2hex(random_bytes(16)); //32 hex chars ~ 128 bits of randomness
-    try {
-        $pdo = db_rw(); 
-        // Prepared statement: prevents SQL injection because values are never concatenated into SQL
-        $sql = "INSERT INTO reservations 
-        (public_id, user_id, pitch_id, arrival_date, departure_date, notes)
-        VALUES 
-        (:public_id, :user_id, :pitch_id, :arrival_date, :departure_date, :notes)";
+//you should generste a public_id in the app (ULID/UUID). Placeholder here:
+$public_id = bin2hex(random_bytes(16)); //32 hex chars ~ 128 bits of randomness
+try {
+    $pdo = db_rw(); 
+    // Prepared statement: prevents SQL injection because values are never concatenated into SQL
+    $sql = "INSERT INTO reservations 
+    (public_id, user_id, pitch_id, arrival_date, departure_date, notes)
+    VALUES 
+    (:public_id, :user_id, :pitch_id, :arrival_date, :departure_date, :notes)";
 
-        $stmt= $pdo->prepare($sql); //prepare() builds a compiled query template with placeholders
+    $stmt= $pdo->prepare($sql); //prepare() builds a compiled query template with placeholders
 
-        //execute with parameter array (cleaner than binParam/bindValue for most cases)
-        $stmt->execute([ //execute([...]) binds values safely and runs the query
-            ':public_id'      => $public_id,
-        ':user_id'        => $user_id,
-        ':pitch_id'       => $pitch_id,
-        ':arrival_date'   => $arrival,
-        ':departure_date' => $departure,
-        ':notes'          => $notes,
-        ]);
-        // Success response (simple). In a more sophisticated app we could redirect to a success page
-        http_response_code(201);
-        echo "Reservation created. Public ID: " . e($public_id);
+    //execute with parameter array (cleaner than binParam/bindValue for most cases)
+    $stmt->execute([ //execute([...]) binds values safely and runs the query
+        ':public_id'      => $public_id,
+    ':user_id'        => $user_id,
+    ':pitch_id'       => $pitch_id,
+    ':arrival_date'   => $arrival,
+    ':departure_date' => $departure,
+    ':notes'          => $notes,
+    ]);
+    // Success response (simple). In a more sophisticated app we could redirect to a success page
+    http_response_code(201);
+    echo "Reservation created. Public ID: " . e($public_id);
 
-    } catch (PDOException $ex) { // catch(PDOException) prevents raw DB errors from reaching the user
-          // IMPORTANT: don't leak DB details to the user.
-    // Log server-side (file/syslog) in real app; for now we show a generic message.
-    fail("Database error while creating reservation.", 500);
-    }    
+} catch (PDOException $ex) { // catch(PDOException) prevents raw DB errors from reaching the user
+        // IMPORTANT: don't leak DB details to the user.
+// Log server-side (file/syslog) in real app; for now we show a generic message.
+fail("Database error while creating reservation.", 500);
+}    
 ```
 #### Section 4. Sanity checks. Quick "attack simulation"
 
 - **Test a)** RO connection cannot write
 Let's temporsry this in pitches: 
 ```php
-    $pdo->exec("INSERT INTO pitches(code, has_electricity) VALUES ('Z9',1)");
+$pdo->exec("INSERT INTO pitches(code, has_electricity) VALUES ('Z9',1)");
 ```
 We expect a **permission denied** message.
 
 - **Test b)**: RW connection cannot alter schema
 In *reservation_create.php*, try: 
 ```php
-    $pdo->exec("CREATE TABLE should_fail(id INT)");
+$pdo->exec("CREATE TABLE should_fail(id INT)");
 ```
 We expect a **permission denied** message.
 
