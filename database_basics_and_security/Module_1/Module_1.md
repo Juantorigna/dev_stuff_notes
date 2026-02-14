@@ -320,14 +320,14 @@ Tables are the data structure of a database.
 Run this at mysql>
 ```sql
 CREATE TABLE users (
-id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, /*big stands for "bigger range. We'll use it as Primary Key (PK)*/
-public_id CHAR(26) NOT NULL,
-email VARCHAR(254) NOT NULL,
-password_hash VARCHAR(255) NOT NULL,
-created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-PRIMARY KEY (id),
-UNIQUE KEY uq_users_public_id (public_id),
-UNIQUE KEY uq_users_email (email)
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, /*big stands for "bigger range. We'll use it as Primary Key (PK)*/
+    public_id CHAR(26) NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_users_public_id (public_id),
+    UNIQUE KEY uq_users_email (email)
 ) ENGINE=InnoDB;
 ```
 
@@ -344,19 +344,19 @@ The expected query telling you everything has worked fine is "**Query OK...**"
 
 After running the code above we can check it writing: 
 ```sql
-    DESCRIBE users; 
+DESCRIBE users; 
 ```
 If everything works out fine, we should see columns including headers like id, public:id, email, etc. 
 
 Since in our example we are building  DB for a camping, we'll create a table dedicated to each pitch: 
 ```sql
 CREATE TABLE pitches (
-id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-code VARCHAR(20) NOT NULL,
-has_electricity BOOLEAN NOT NULL DEFAULT FALSE,
-created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-PRIMARY KEY (id),
-UNIQUE KEY uq_pitches_code (code)
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    code VARCHAR(20) NOT NULL,
+    has_electricity BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_pitches_code (code)
 ) ENGINE=InnoDB;
 ```
 
