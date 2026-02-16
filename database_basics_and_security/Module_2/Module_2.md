@@ -233,4 +233,4 @@ By normalizaion we mean: "don't duplicate the same fact in multiple places". Thi
 - c. Structural integrity
 - d. Predictable behaviour under updates
 
-It is based on **functional dependency theory**.
+It is based on **functional dependency theory**. If we have to use a single sentence, we'd say that a fact should exist in exactly one place. 
