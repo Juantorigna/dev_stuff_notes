@@ -234,3 +234,45 @@ By normalizaion we mean: "don't duplicate the same fact in multiple places". Thi
 - d. Predictable behaviour under updates
 
 It is based on **functional dependency theory**. If we have to use a single sentence, we'd say that a fact should exist in exactly one place. 
+## Part 2. Indexing theory
+
+An index is a data structure that allows the database to find rows faster. Without an index, the database performs a full table scan, instead of jumping directly to the relevant row. 
+
+## Part 2, Section 1. The B-tree conceptual model. 
+A B-tree is a **balanced** tree structure which nodes' contain **ordered keys** and leaves contain pointers to actual rows. 
+
+Three important properties are: <br>
+1. Sorted order
+2. Balanced height
+3. Logarithmic lookup time
+
+If a tree is balanced the height grows slowly even if the table grows massively. Time complxity becomes O(log n) instead of O(n). 
+e.g.
+```sql
+SELECT * FROM table WHERE id = 500000;
+```
+Without an index the database would end up scanning 500000 rows. With B-tree index, it has to navigate 3-4 levels. 
+```sql
+CREATE INDEX idx_id ON table(id);
+```
+
+flowchart TD
+
+    A["300000 | 700000"] --> B["< 300000"]
+    A --> C["300000 - 700000"]
+    A --> D["> 700000"]
+
+    C --> E["450000 | 600000"]
+
+    E --> F["300000 - 450000"]
+    E --> G["450000 - 600000"]
+    E --> H["600000 - 700000"]
+
+    G --> I["480000 | 520000"]
+
+    I --> J["450000 - 480000"]
+    I --> K["480000 - 520000"]
+    I --> L["520000 - 600000"]
+
+    K --> M["499998 | 499999 | 500000 | 500001"]
+
