@@ -238,7 +238,7 @@ It is based on **functional dependency theory**. If we have to use a single sent
 
 An index is a data structure that allows the database to find rows faster. Without an index, the database performs a full table scan, instead of jumping directly to the relevant row. 
 
-## Part 2, Section 1. The B-tree conceptual model. 
+### Part 2, Section 1. The B-tree conceptual model. 
 A B-tree is a **balanced** tree structure which nodes' contain **ordered keys** and leaves contain pointers to actual rows. 
 
 Three important properties are: <br>
@@ -255,8 +255,6 @@ Without an index the database would end up scanning 500000 rows. With B-tree ind
 ```sql
 CREATE INDEX idx_id ON table(id);
 ```
-
-## B-Tree Conceptual Model
 
 ```mermaid
 flowchart TD
@@ -278,5 +276,15 @@ flowchart TD
 
     K --> M["499998, 499999, 500000, 500001"]
 ```
+### Part 2, Section 2. How an index actually works internally
+When we create the following: 
+```sql
+CREATE INDEX idx_email ON users(email);
+```
+
+The database proceeds by: 
+- a. creating a sorted structure of emails
+- b. storing pointers to corresponding rows
+- c. Maintaining it automatically when rows are inserted/updated/deleted. 
 
 
