@@ -256,8 +256,10 @@ Without an index the database would end up scanning 500000 rows. With B-tree ind
 CREATE INDEX idx_id ON table(id);
 ```
 
-flowchart TD
+## B-Tree Conceptual Model
 
+```mermaid
+flowchart TD
     A["300000 , 700000"] --> B["< 300000"]
     A --> C["300000 - 700000"]
     A --> D["> 700000"]
@@ -275,4 +277,6 @@ flowchart TD
     I --> L["520000 - 600000"]
 
     K --> M["499998, 499999, 500000, 500001"]
+```
+
 
